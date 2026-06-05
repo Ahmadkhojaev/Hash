@@ -1,0 +1,4 @@
+# Asosiy funksiyalar uchun tashqi kutubxona shart emas (toza Python).
+# Kelgusi tahlil va vizualizatsiya bosqichlari uchun:
+numpy>=1.24
+matplotlib>=3.7
