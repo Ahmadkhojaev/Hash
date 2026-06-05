@@ -24,7 +24,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from hashes import HASH_REGISTRY
-from analysis import avalanche_test, performance_test, generate_pdf_report
+from analysis import avalanche_test, performance_test, generate_pdf_report, collect_resources
 
 
 def resource_path(relative: str) -> str:
@@ -44,6 +44,14 @@ PANEL = "#2a2a3c"
 ACCENT = "#89b4fa"
 TEXT = "#cdd6f4"
 GREEN = "#a6e3a1"
+RED = "#f38ba8"
+
+# Xeshlash uchun kiritiladigan matnning maksimal uzunligi (belgi).
+# SPONGENT toza Python'da sekin (~370 belgi/soniya), shu sababli matn
+# kiritish bo'limida oqilona chegara qo'yiladi. Fayl xeshlashda alohida
+# (kattaroq) chegara ishlatiladi.
+MAX_INPUT_CHARS = 1000
+MAX_FILE_BYTES = 100 * 1024  # 100 KB
 
 
 class HashAnalyzerApp(tk.Tk):
@@ -120,11 +128,13 @@ class HashAnalyzerApp(tk.Tk):
         self.hash_tab = HashTab(notebook)
         self.avalanche_tab = AvalancheTab(notebook)
         self.performance_tab = PerformanceTab(notebook)
+        self.resource_tab = ResourceTab(notebook)
         self.report_tab = ReportTab(notebook)
 
         notebook.add(self.hash_tab, text="  Xeshlash  ")
         notebook.add(self.avalanche_tab, text="  Avalanche effekti  ")
         notebook.add(self.performance_tab, text="  Unumdorlik  ")
+        notebook.add(self.resource_tab, text="  Resurslar  ")
         notebook.add(self.report_tab, text="  PDF hisobot  ")
 
 
@@ -158,7 +168,14 @@ class HashTab(ttk.Frame):
         combo.pack(side="left", padx=10)
 
         # Matn kiritish maydoni
-        ttk.Label(self, text="Kiritiladigan matn:").pack(anchor="w", padx=20)
+        label_row = ttk.Frame(self)
+        label_row.pack(fill="x", padx=20)
+        ttk.Label(label_row, text="Kiritiladigan matn:").pack(side="left")
+        self.counter = ttk.Label(
+            label_row, text=f"0 / {MAX_INPUT_CHARS}", foreground=ACCENT
+        )
+        self.counter.pack(side="right")
+
         self.text_input = tk.Text(
             self,
             height=6,
@@ -172,16 +189,21 @@ class HashTab(ttk.Frame):
         )
         self.text_input.pack(fill="x", padx=20, pady=(4, 10))
         self.text_input.insert("1.0", "Salom, dunyo!")
+        # Har bir o'zgarishda belgilar sonini yangilab boramiz
+        self.text_input.bind("<KeyRelease>", self._update_counter)
+        self._update_counter()
 
         # Tugmalar
         btn_row = ttk.Frame(self)
         btn_row.pack(fill="x", padx=20, pady=4)
-        ttk.Button(
+        self.hash_btn = ttk.Button(
             btn_row, text="Xeshlash", style="Accent.TButton", command=self._hash_text
-        ).pack(side="left")
-        ttk.Button(
+        )
+        self.hash_btn.pack(side="left")
+        self.file_btn = ttk.Button(
             btn_row, text="Fayl tanlash...", style="Accent.TButton", command=self._hash_file
-        ).pack(side="left", padx=10)
+        )
+        self.file_btn.pack(side="left", padx=10)
 
         # Natija
         ttk.Label(self, text="Natija (hex):").pack(anchor="w", padx=20, pady=(14, 4))
@@ -202,6 +224,16 @@ class HashTab(ttk.Frame):
         self.info = ttk.Label(self, text="", foreground=ACCENT)
         self.info.pack(anchor="w", padx=20, pady=8)
 
+    def _update_counter(self, event=None):
+        """Belgilar sonini yangilab, chegaradan oshganda rangini o'zgartiradi."""
+        n = len(self.text_input.get("1.0", "end-1c"))
+        self.counter.config(text=f"{n} / {MAX_INPUT_CHARS}")
+        # Chegaradan oshsa qizil, yaqinlashsa sariq, aks holda oddiy
+        if n > MAX_INPUT_CHARS:
+            self.counter.config(foreground=RED)
+        else:
+            self.counter.config(foreground=ACCENT)
+
     def _show_result(self, digest: bytes):
         self.result.configure(state="normal")
         self.result.delete("1.0", "end")
@@ -209,10 +241,45 @@ class HashTab(ttk.Frame):
         self.result.configure(state="disabled")
         self.info.config(text=f"Uzunligi: {len(digest)} bayt ({len(digest) * 8} bit)")
 
+    def _set_busy(self, busy: bool):
+        """Hisoblash vaqtida tugmalarni bloklab, holatni ko'rsatadi."""
+        state = "disabled" if busy else "normal"
+        self.hash_btn.config(state=state)
+        self.file_btn.config(state=state)
+        if busy:
+            self.info.config(text="Hisoblanmoqda, kuting...")
+
+    def _run_hash(self, func, data: bytes, source_info: str):
+        """Xeshlashni fon oqimida bajaradi (GUI qotmasligi uchun)."""
+        self._set_busy(True)
+
+        def worker():
+            digest = func(data)
+            self.after(0, lambda: self._on_hash_done(digest, source_info))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_hash_done(self, digest: bytes, source_info: str):
+        self._set_busy(False)
+        self._show_result(digest)
+        if source_info:
+            self.info.config(text=source_info)
+
     def _hash_text(self):
+        text = self.text_input.get("1.0", "end-1c")
+        if len(text) > MAX_INPUT_CHARS:
+            messagebox.showwarning(
+                "Matn juda uzun",
+                f"Kiritilgan matn {len(text)} belgidan iborat.\n"
+                f"Maksimal ruxsat etilgan: {MAX_INPUT_CHARS} belgi.\n\n"
+                "Sabab: SPONGENT kabi yengil funksiyalar toza Python'da sekin "
+                "ishlaydi. Kattaroq ma'lumotni xeshlash uchun 'Fayl tanlash' "
+                "tugmasidan foydalaning.",
+            )
+            return
         func, _ = HASH_REGISTRY[self.func_var.get()]
-        data = self.text_input.get("1.0", "end-1c").encode("utf-8")
-        self._show_result(func(data))
+        data = text.encode("utf-8")
+        self._run_hash(func, data, source_info="")
 
     def _hash_file(self):
         path = filedialog.askopenfilename(title="Faylni tanlang")
@@ -224,9 +291,23 @@ class HashTab(ttk.Frame):
         except OSError as exc:
             messagebox.showerror("Xato", f"Faylni o'qib bo'lmadi:\n{exc}")
             return
+
+        # Sekin funksiyalar uchun fayl hajmini ham cheklaymiz
+        if len(data) > MAX_FILE_BYTES:
+            proceed = messagebox.askyesno(
+                "Fayl katta",
+                f"Fayl hajmi {len(data) // 1024} KB.\n"
+                f"Tavsiya etilgan chegara: {MAX_FILE_BYTES // 1024} KB.\n\n"
+                "Yengil funksiyalar (ayniqsa SPONGENT) katta fayllarni juda sekin "
+                "qayta ishlaydi va bu bir necha daqiqa davom etishi mumkin.\n\n"
+                "Davom etilsinmi?",
+            )
+            if not proceed:
+                return
+
         func, _ = HASH_REGISTRY[self.func_var.get()]
-        self._show_result(func(data))
-        self.info.config(text=f"Fayl: {path}  ({len(data)} bayt)")
+        info = f"Fayl: {path}  ({len(data)} bayt)"
+        self._run_hash(func, data, source_info=info)
 
 
 # ====================================================================== #
@@ -406,7 +487,115 @@ class PerformanceTab(ttk.Frame):
 
 
 # ====================================================================== #
-# 4-BO'LIM: PDF hisobot
+# 4-BO'LIM: Resurslar (xotira va apparat)
+# ====================================================================== #
+class ResourceTab(ttk.Frame):
+    """Funksiyalarning resurs sarfini (holat hajmi, xotira) taqqoslash bo'limi."""
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._build()
+
+    def _build(self):
+        ttk.Label(self, text="Resurs (xotira va apparat) tahlili", style="Header.TLabel").pack(
+            anchor="w", padx=20, pady=(20, 4)
+        )
+        ttk.Label(
+            self,
+            text="Yengil funksiyalarning asl ustunligi - kichik holat hajmi va resurs sarfi.\n"
+            "Holat hajmi (state size) apparatdagi joy (gate count) bilan bevosita bog'liq.",
+            justify="left",
+        ).pack(anchor="w", padx=20, pady=(0, 10))
+
+        ctrl = ttk.Frame(self)
+        ctrl.pack(fill="x", padx=20)
+        self.run_btn = ttk.Button(
+            ctrl, text="Tahlilni boshlash", style="Accent.TButton", command=self._run
+        )
+        self.run_btn.pack(side="left")
+        self.status = ttk.Label(ctrl, text="", foreground=ACCENT)
+        self.status.pack(side="left", padx=10)
+
+        # Yuqorida diagramma, pastda jadval
+        self.fig = Figure(figsize=(7, 2.8), facecolor=BG)
+        self.ax = self.fig.add_subplot(111)
+        self._style_axes()
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.get_tk_widget().pack(fill="x", padx=20, pady=10)
+
+        # Ma'lumotlar jadvali (matn)
+        self.table = tk.Text(
+            self, height=10, bg=PANEL, fg=TEXT, relief="flat",
+            font=("Consolas", 9), padx=10, pady=10, wrap="none",
+        )
+        self.table.pack(fill="both", expand=True, padx=20, pady=(0, 16))
+        self.table.configure(state="disabled")
+
+    def _style_axes(self):
+        self.ax.set_facecolor(PANEL)
+        self.ax.tick_params(colors=TEXT)
+        for spine in self.ax.spines.values():
+            spine.set_color(TEXT)
+
+    def _run(self):
+        self.run_btn.config(state="disabled")
+        self.status.config(text="Hisoblanmoqda...")
+        threading.Thread(target=self._worker, daemon=True).start()
+
+    def _worker(self):
+        results = collect_resources(HASH_REGISTRY)
+        self.after(0, lambda: self._show(results))
+
+    def _show(self, results: dict):
+        # --- Diagramma: holat hajmi (state size) ---
+        self.ax.clear()
+        self._style_axes()
+        names = list(results.keys())
+        states = [results[n].get("state_bits", 0) for n in names]
+        colors = [GREEN if results[n]["type"] == "yengil" else ACCENT for n in names]
+
+        bars = self.ax.bar(names, states, color=colors)
+        self.ax.set_ylabel("Holat hajmi (bit)", color=TEXT)
+        self.ax.set_title("Ichki holat hajmi (kichik = apparatga qulay)",
+                          color=TEXT, fontweight="bold")
+        self.ax.tick_params(axis="x", rotation=15)
+        for bar, s in zip(bars, states):
+            self.ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                         str(s), ha="center", va="bottom", color=TEXT, fontsize=8)
+        self.fig.tight_layout()
+        self.canvas.draw()
+
+        # --- Jadval ---
+        lines = []
+        header = f"{'Funksiya':<15}{'Holat':>7}{'Rate':>6}{'Sig.':>6}{'Raund':>7}{'Xesh':>6}{'GE~':>7}  Konstruksiya"
+        lines.append(header)
+        lines.append("-" * len(header))
+        for n in names:
+            m = results[n]
+            cap = m.get("capacity")
+            cap_s = str(cap) if cap is not None else "-"
+            ge = m.get("ge_estimate")
+            ge_s = str(ge) if ge is not None else "-"
+            lines.append(
+                f"{n:<15}{m.get('state_bits',0):>7}{m.get('rate_bits',0):>6}"
+                f"{cap_s:>6}{m.get('rounds',0):>7}{m.get('digest_bits',0):>6}"
+                f"{ge_s:>7}  {m.get('construction','')}"
+            )
+        lines.append("")
+        lines.append("Izoh: GE~ - taxminiy apparat maydoni (gate equivalents, adabiyotdan).")
+        lines.append("Holat va Rate - bit. Yengil funksiyalar (yashil) kichik holatga ega.")
+
+        self.table.configure(state="normal")
+        self.table.delete("1.0", "end")
+        self.table.insert("1.0", "\n".join(lines))
+        self.table.configure(state="disabled")
+
+        self.status.config(text="Tayyor")
+        self.run_btn.config(state="normal")
+
+
+# ====================================================================== #
+# 5-BO'LIM: PDF hisobot
 # ====================================================================== #
 class ReportTab(ttk.Frame):
     """Barcha tahlillarni jamlab, PDF hisobot yaratish bo'limi."""

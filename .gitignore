@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# PyInstaller build artefaktlari
+build/
+dist/
+*.spec.bak
+
+# Inno Setup natijasi
+Output/
+
+# Yaratiladigan ikonka (logo.png dan make_icon.py orqali hosil bo'ladi)
+icon.ico
+
+# OS / muharrir
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

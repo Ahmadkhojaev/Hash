@@ -20,6 +20,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from hashes import HASH_REGISTRY
 from .avalanche import avalanche_test
 from .performance import performance_test
+from .resources import collect_resources
 
 
 # Hisobotda ishlatiladigan ranglar
@@ -188,6 +189,62 @@ def _draw_performance_page(pdf: PdfPages, results: dict) -> None:
     plt.close(fig)
 
 
+def _draw_resource_page(pdf: PdfPages, resources: dict) -> None:
+    """Resurs (holat hajmi va apparat) sahifasi: diagramma + jadval."""
+    fig = plt.figure(figsize=(8.27, 11.69))
+    fig.suptitle("3. Resurs (xotira va apparat) tahlili", fontsize=16, fontweight="bold", y=0.97)
+
+    names = list(resources.keys())
+    states = [resources[n].get("state_bits", 0) for n in names]
+    colors = [LIGHT_COLOR if resources[n]["type"] == "yengil" else STD_COLOR for n in names]
+
+    # Diagramma: holat hajmi
+    ax1 = fig.add_axes([0.12, 0.55, 0.78, 0.33])
+    bars = ax1.bar(names, states, color=colors)
+    ax1.set_ylabel("Holat hajmi (bit)")
+    ax1.set_title("Ichki holat hajmi (kichik = apparatga qulay)")
+    ax1.tick_params(axis="x", rotation=15)
+    for bar, s in zip(bars, states):
+        ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                 str(s), ha="center", va="bottom", fontsize=8)
+
+    # Jadval
+    ax2 = fig.add_axes([0.05, 0.10, 0.90, 0.34])
+    ax2.axis("off")
+    table_data = [["Funksiya", "Turi", "Holat", "Rate", "Sig'im", "Raund", "Xesh", "GE~"]]
+    for n in names:
+        m = resources[n]
+        cap = m.get("capacity")
+        ge = m.get("ge_estimate")
+        table_data.append([
+            n,
+            m["type"],
+            str(m.get("state_bits", 0)),
+            str(m.get("rate_bits", 0)),
+            str(cap) if cap is not None else "-",
+            str(m.get("rounds", 0)),
+            str(m.get("digest_bits", 0)),
+            str(ge) if ge is not None else "-",
+        ])
+    table = ax2.table(cellText=table_data, loc="center", cellLoc="center")
+    table.auto_set_font_size(False)
+    table.set_fontsize(8)
+    table.scale(1, 1.6)
+    for j in range(len(table_data[0])):
+        table[0, j].set_facecolor("#34495e")
+        table[0, j].set_text_props(color="white", fontweight="bold")
+
+    note = ("Izoh: Holat hajmi (state size) va apparat maydoni (GE - gate equivalents) "
+            "yengil kriptografiyaning asosiy mezonlaridir. SPONGENT va PHOTON eng kichik "
+            "apparat maydonini (~1000-1100 GE) talab qiladi - bu ularni RFID va sensorlar "
+            "uchun mos qiladi. SHA va BLAKE2 esa katta maydon (>10000 GE) talab qiladi. "
+            "Demak yengil funksiyalarning ustunligi tezlikda emas, balki resurs sarfida.")
+    fig.text(0.06, 0.05, note, fontsize=9, color="#555555", wrap=True)
+
+    pdf.savefig(fig)
+    plt.close(fig)
+
+
 def generate_pdf_report(path: str, num_samples: int = 30, data_kb: int = 200) -> dict:
     """
     To'liq PDF hisobotni shakllantirib, berilgan yo'lga saqlaydi.
@@ -195,16 +252,18 @@ def generate_pdf_report(path: str, num_samples: int = 30, data_kb: int = 200) ->
     Parametrlar:
         path        - saqlanadigan PDF fayl yo'li.
         num_samples - avalanche tahlili uchun namunalar soni.
-        data_kb     - unumdorlik tahlili uchun ma'lumot hajmi (KB).
+        data_kb     - (eskirgan, saqlangan moslik uchun) ishlatilmaydi.
 
     Qaytaradi:
         Yig'ilgan natijalar lug'ati (collect_results natijasi).
     """
     results = collect_results(num_samples, data_kb)
+    resources = collect_resources(HASH_REGISTRY)
     with PdfPages(path) as pdf:
         _draw_title_page(pdf, num_samples, data_kb)
         _draw_avalanche_page(pdf, results)
         _draw_performance_page(pdf, results)
+        _draw_resource_page(pdf, resources)
         meta = pdf.infodict()
         meta["Title"] = "Yengil vaznli xesh funksiyalar tahlili"
         meta["Subject"] = "Diplom ishi hisoboti"
