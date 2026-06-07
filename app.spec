@@ -45,7 +45,9 @@ a = Analysis(
         # Boshqa GUI freymvorklar (kerak emas, Tkinter ishlatamiz)
         'PyQt5', 'PyQt6', 'PySide2', 'PySide6', 'wx',
         # Ilmiy/ma'lumot kutubxonalari (ishlatilmaydi)
-        'pandas', 'scipy', 'sympy', 'PIL',
+        # Eslatma: PIL (Pillow) ni chiqarib tashlamaymiz - matplotlib uni
+        # majburiy bog'liqlik sifatida import qiladi (colors.py).
+        'pandas', 'scipy', 'sympy',
         # Interaktiv muhitlar
         'IPython', 'jupyter', 'notebook', 'ipykernel', 'nbconvert',
         # Test freymvorklari
