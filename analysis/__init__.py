@@ -3,7 +3,7 @@
 from .avalanche import avalanche_test
 from .performance import performance_test
 from .resources import collect_resources, measure_memory, HASH_METADATA
-from .report import generate_pdf_report, collect_results
+from .report import generate_pdf_report
 
 __all__ = [
     "avalanche_test",
@@ -12,5 +12,4 @@ __all__ = [
     "measure_memory",
     "HASH_METADATA",
     "generate_pdf_report",
-    "collect_results",
 ]

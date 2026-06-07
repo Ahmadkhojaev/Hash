@@ -1,11 +1,12 @@
 """
 Tahlil natijalarini PDF hisobot sifatida shakllantirish.
 
-Ushbu modul barcha xesh funksiyalar uchun avalanche va unumdorlik
-tahlillarini o'tkazib, natijalarni ko'p sahifali PDF hisobotga jamlaydi:
+Ushbu modul barcha xesh funksiyalar uchun tahlillarni o'tkazib, natijalarni
+ko'p sahifali PDF hisobotga jamlaydi:
     1-sahifa: Sarlavha va umumiy ma'lumot
     2-sahifa: Avalanche effekti (jadval + diagramma)
     3-sahifa: Unumdorlik (jadval + diagramma)
+    4-sahifa: Resurs (holat hajmi, apparat maydoni) tahlili
 
 Faqat matplotlib ishlatiladi (qo'shimcha kutubxona shart emas).
 """
@@ -34,12 +35,12 @@ def _color_for(name: str) -> str:
     return LIGHT_COLOR if HASH_REGISTRY[name][1] == "yengil" else STD_COLOR
 
 
-def collect_results(num_samples: int, data_kb: int) -> dict:
+def collect_results(num_samples: int) -> dict:
     """
     Barcha xesh funksiyalar bo'yicha tahlil natijalarini yig'adi.
 
-    Eslatma: 'data_kb' endi to'g'ridan-to'g'ri ishlatilmaydi; unumdorlik vaqt
-    budjeti asosida o'lchanadi (sekin funksiyalar dasturni muzlatmasligi uchun).
+    Eslatma: unumdorlik vaqt budjeti asosida o'lchanadi (sekin funksiyalar
+    dasturni muzlatmasligi uchun).
 
     Qaytaradi:
         {nom: {"avalanche": {...}, "performance": {...}}, ...}
@@ -53,7 +54,7 @@ def collect_results(num_samples: int, data_kb: int) -> dict:
     return results
 
 
-def _draw_title_page(pdf: PdfPages, num_samples: int, data_kb: int) -> None:
+def _draw_title_page(pdf: PdfPages, num_samples: int) -> None:
     """Sarlavha sahifasini chizadi."""
     fig = plt.figure(figsize=(8.27, 11.69))  # A4
     fig.patch.set_facecolor("white")
@@ -70,12 +71,11 @@ def _draw_title_page(pdf: PdfPages, num_samples: int, data_kb: int) -> None:
     info_lines = [
         f"Hisobot sanasi: {now}",
         f"Tahlil qilingan funksiyalar soni: {len(HASH_REGISTRY)}",
-        f"Avalanche namunalari: {num_samples}",
-        f"Unumdorlik uchun ma'lumot hajmi: {data_kb} KB",
+        f"Avalanche namunalari (har funksiya): {num_samples}",
         "",
         "Tahlil qilingan funksiyalar:",
     ]
-    for i, (name, (_, kind)) in enumerate(HASH_REGISTRY.items()):
+    for name, (_, kind) in HASH_REGISTRY.items():
         info_lines.append(f"    • {name}  ({kind})")
 
     ax.text(0.15, 0.55, "\n".join(info_lines), ha="left", va="top", fontsize=12,
@@ -245,22 +245,21 @@ def _draw_resource_page(pdf: PdfPages, resources: dict) -> None:
     plt.close(fig)
 
 
-def generate_pdf_report(path: str, num_samples: int = 30, data_kb: int = 200) -> dict:
+def generate_pdf_report(path: str, num_samples: int = 30) -> dict:
     """
     To'liq PDF hisobotni shakllantirib, berilgan yo'lga saqlaydi.
 
     Parametrlar:
         path        - saqlanadigan PDF fayl yo'li.
         num_samples - avalanche tahlili uchun namunalar soni.
-        data_kb     - (eskirgan, saqlangan moslik uchun) ishlatilmaydi.
 
     Qaytaradi:
         Yig'ilgan natijalar lug'ati (collect_results natijasi).
     """
-    results = collect_results(num_samples, data_kb)
+    results = collect_results(num_samples)
     resources = collect_resources(HASH_REGISTRY)
     with PdfPages(path) as pdf:
-        _draw_title_page(pdf, num_samples, data_kb)
+        _draw_title_page(pdf, num_samples)
         _draw_avalanche_page(pdf, results)
         _draw_performance_page(pdf, results)
         _draw_resource_page(pdf, resources)

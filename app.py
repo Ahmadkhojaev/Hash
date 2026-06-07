@@ -3,10 +3,12 @@ Yengil vaznli kriptografik xesh funksiyalarni tahlil qilish dasturi (GUI).
 
 Diplom ishi: "Yengil vaznli kriptografik xesh funksiyalarning tahlili"
 
-Grafik interfeysli Windows ilovasi (Tkinter asosida). Uchta asosiy bo'lim:
+Grafik interfeysli Windows ilovasi (Tkinter asosida). Beshta asosiy bo'lim:
     1. Xeshlash      - matn yoki faylni tanlangan funksiya bilan xeshlash
     2. Avalanche     - ko'chki effekti tahlili va grafigi
     3. Unumdorlik    - funksiyalar tezligini taqqoslash grafigi
+    4. Resurslar     - holat hajmi, apparat maydoni va xotira sarfi tahlili
+    5. PDF hisobot   - barcha tahlillarni jamlovchi hisobot yaratish
 
 Ishga tushirish:
     python app.py
@@ -610,7 +612,7 @@ class ReportTab(ttk.Frame):
         )
         ttk.Label(
             self,
-            text="Barcha funksiyalar bo'yicha avalanche va unumdorlik tahlillari\n"
+            text="Barcha funksiyalar bo'yicha avalanche, unumdorlik va resurs tahlillari\n"
             "jadval va diagrammalar bilan ko'p sahifali PDF hisobotga jamlanadi.",
             justify="left",
         ).pack(anchor="w", padx=20, pady=(0, 16))
@@ -625,11 +627,11 @@ class ReportTab(ttk.Frame):
             row=0, column=1, sticky="w", padx=10
         )
 
-        ttk.Label(cfg, text="Ma'lumot hajmi (KB):").grid(row=1, column=0, sticky="w", pady=6)
-        self.data_kb = tk.IntVar(value=200)
-        ttk.Spinbox(cfg, from_=50, to=2000, increment=50, textvariable=self.data_kb, width=8).grid(
-            row=1, column=1, sticky="w", padx=10
-        )
+        ttk.Label(
+            cfg,
+            text="(Unumdorlik vaqt budjeti asosida avtomatik o'lchanadi)",
+            foreground="#888899",
+        ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(2, 0))
 
         # Tugma
         self.run_btn = ttk.Button(
@@ -674,7 +676,6 @@ class ReportTab(ttk.Frame):
             results = generate_pdf_report(
                 path,
                 num_samples=self.samples.get(),
-                data_kb=self.data_kb.get(),
             )
         except Exception as exc:  # noqa: BLE001 - foydalanuvchiga xatoni ko'rsatamiz
             self.after(0, lambda: self._on_error(exc))

@@ -1,4 +1,4 @@
-# Asosiy funksiyalar uchun tashqi kutubxona shart emas (toza Python).
-# Kelgusi tahlil va vizualizatsiya bosqichlari uchun:
-numpy>=1.24
+# Yengil funksiyalar (Ascon, PHOTON, SPONGENT) toza Python'da yozilgan -
+# ular uchun tashqi kutubxona shart emas.
+# Grafiklar va PDF hisobot uchun matplotlib kerak:
 matplotlib>=3.7
