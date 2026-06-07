@@ -11,8 +11,8 @@
 ; ============================================================
 
 #define AppName "Yengil Xesh Funksiyalar Tahlili"
-#define AppVersion "1.0"
-#define AppPublisher "Diplom ishi"
+#define AppVersion "1.1"
+#define AppPublisher "070-21 | Axmadxo'jayev Abbosxon"
 #define AppExeName "XeshTahlil.exe"
 
 [Setup]

@@ -2,6 +2,7 @@
 Yengil vaznli kriptografik xesh funksiyalarni tahlil qilish dasturi (CLI).
 
 Diplom ishi: "Yengil vaznli kriptografik xesh funksiyalarning tahlili"
+Muallif: 070-21 | Axmadxo'jayev Abbosxon
 
 Bu buyruq qatori (CLI) interfeysi. Grafik interfeys uchun: python app.py
 
@@ -31,6 +32,7 @@ def cmd_list() -> None:
     print("Mavjud xesh funksiyalar:")
     for name, (_, kind) in HASH_REGISTRY.items():
         print(f"  {name:<16} ({kind})")
+    print("\nMuallif: 070-21 | Axmadxo'jayev Abbosxon")
 
 
 def cmd_hash(func_name: str, text: str) -> None:

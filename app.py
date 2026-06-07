@@ -2,6 +2,7 @@
 Yengil vaznli kriptografik xesh funksiyalarni tahlil qilish dasturi (GUI).
 
 Diplom ishi: "Yengil vaznli kriptografik xesh funksiyalarning tahlili"
+Muallif: 070-21 | Axmadxo'jayev Abbosxon
 
 Grafik interfeysli Windows ilovasi (Tkinter asosida). Beshta asosiy bo'lim:
     1. Xeshlash      - matn yoki faylni tanlangan funksiya bilan xeshlash
@@ -54,6 +55,9 @@ RED = "#f38ba8"
 # (kattaroq) chegara ishlatiladi.
 MAX_INPUT_CHARS = 1000
 MAX_FILE_BYTES = 100 * 1024  # 100 KB
+
+# Dastur muallifi (diplom ishi)
+AUTHOR = "070-21 | Axmadxo'jayev Abbosxon"
 
 
 class HashAnalyzerApp(tk.Tk):
@@ -124,6 +128,18 @@ class HashAnalyzerApp(tk.Tk):
         )
 
     def _build_ui(self):
+        # Doimiy pastki satr (muallif) - oynaning eng pastida turadi
+        footer = ttk.Label(
+            self,
+            text=AUTHOR,
+            background=PANEL,
+            foreground=TEXT,
+            font=("Segoe UI", 9),
+            anchor="e",
+            padding=(12, 4),
+        )
+        footer.pack(side="bottom", fill="x")
+
         notebook = ttk.Notebook(self)
         notebook.pack(fill="both", expand=True, padx=12, pady=12)
 

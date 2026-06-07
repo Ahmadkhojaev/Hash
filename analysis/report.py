@@ -24,6 +24,10 @@ from .performance import performance_test
 from .resources import collect_resources
 
 
+# Dastur muallifi (diplom ishi)
+AUTHOR = "070-21 | Axmadxo'jayev Abbosxon"
+
+
 # Hisobotda ishlatiladigan ranglar
 LIGHT_COLOR = "#2e8b57"   # yengil funksiyalar uchun (yashil)
 STD_COLOR = "#4169e1"     # standart funksiyalar uchun (ko'k)
@@ -80,6 +84,10 @@ def _draw_title_page(pdf: PdfPages, num_samples: int) -> None:
 
     ax.text(0.15, 0.55, "\n".join(info_lines), ha="left", va="top", fontsize=12,
             linespacing=1.8)
+
+    # Muallif (diplom ishi)
+    ax.text(0.5, 0.14, f"Muallif: {AUTHOR}", ha="center", fontsize=13,
+            fontweight="bold", color="#333333")
 
     ax.text(0.5, 0.06, "Hisobot avtomatik tarzda shakllantirilgan",
             ha="center", fontsize=9, color="#999999", style="italic")
@@ -266,4 +274,5 @@ def generate_pdf_report(path: str, num_samples: int = 30) -> dict:
         meta = pdf.infodict()
         meta["Title"] = "Yengil vaznli xesh funksiyalar tahlili"
         meta["Subject"] = "Diplom ishi hisoboti"
+        meta["Author"] = AUTHOR
     return results
