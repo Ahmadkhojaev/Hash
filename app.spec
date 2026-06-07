@@ -40,26 +40,15 @@ a = Analysis(
         "matplotlib": {"backends": ["TkAgg", "PDF"]},
     },
     runtime_hooks=[],
-    # Keraksiz og'ir kutubxonalar va modullarni chiqarib tashlaymiz
+    # Faqat ANIQ ishlatilmaydigan katta paketlarni chiqarib tashlaymiz.
+    # MUHIM: stdlib modullari (unittest), test freymvorklari (pytest) va
+    # matplotlib ichki bog'liqliklarini (pyparsing PIL kabi) chiqarib
+    # tashlamaymiz - ular import zanjirida kerak bo'lib qoladi.
     excludes=[
-        # Boshqa GUI freymvorklar (kerak emas, Tkinter ishlatamiz)
+        # Boshqa GUI freymvorklar (kerak emas, biz Tkinter ishlatamiz)
         'PyQt5', 'PyQt6', 'PySide2', 'PySide6', 'wx',
-        # Ilmiy/ma'lumot kutubxonalari (ishlatilmaydi)
-        # Eslatma: PIL (Pillow) ni chiqarib tashlamaymiz - matplotlib uni
-        # majburiy bog'liqlik sifatida import qiladi (colors.py).
-        'pandas', 'scipy', 'sympy',
-        # Interaktiv muhitlar
-        'IPython', 'jupyter', 'notebook', 'ipykernel', 'nbconvert',
-        # Test freymvorklari
-        'pytest', 'nose', 'unittest',
-        # matplotlib'ning keraksiz qismlari
-        'matplotlib.tests', 'numpy.tests',
-        'matplotlib.backends.backend_webagg',
-        'matplotlib.backends.backend_qt5agg',
-        'matplotlib.backends.backend_gtk3agg',
-        'matplotlib.backends.backend_wxagg',
-        # Tarmoq/web modullari
-        'tornado', 'pycurl',
+        # Yirik ilmiy kutubxonalar (matplotlib yadrosi ularni talab qilmaydi)
+        'pandas', 'scipy',
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
